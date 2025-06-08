@@ -19,7 +19,7 @@
 #include "system.h"
 #include "queue.h"
 #include "deck.h"
-#include "uart1.h"
+#include "uart2.h"
 #include "tofsensor.h"
 
 #define PACKET_SIZE 9
@@ -73,23 +73,23 @@ uint8_t calculateChecksum(const uint8_t *packet, uint8_t len)
     return checksum;
 }
 
-void uart1Send(uint8_t *packet, uint8_t len)
+void uart2Send(uint8_t *packet, uint8_t len)
 {
     packet[len - 1] = calculateChecksum(packet, len);
     uint32_t size = len * sizeof(uint8_t);
-    uart1SendData(size, packet);
+    uart2SendData(size, packet);
     // for (uint8_t i = 0; i < len; i++)
     // {
     //     uart1Putchar(packet[i]);
     // }
 }
 
-void uart1Read(uint8_t *packet, uint8_t len)
+void uart2Read(uint8_t *packet, uint8_t len)    // ★ 函数名改为uart2Read
 {
     for (uint8_t i = 0; i < len; i++)
     {
-        uart1GetDataWithDefaultTimeout(packet + i);
-        // uart1Getchar(packet + i);
+        uart2GetCharWithDefaultTimeout(packet + i);    // ★ 改为uart2GetCharWithDefaultTimeout
+        // uart2Getchar((char*)(packet + i));    // ★ 如果启用，改为uart2Getchar，注意类型转换
     }
 }
 
@@ -103,25 +103,26 @@ void tofTask(void *param)
     // uint8_t repsFreq[6] = {0};
     uint8_t response[PACKET_SIZE] = {0};
 
-    uart1Init(baudrate);
+    uart2Init(baudrate);
     systemWaitStart();
     DEBUG_PRINT("Baud rate: %d\n", (int)baudrate);
 
-    uart1Send(cmdStopMeasure, 5);
+    uart2Send(cmdStopMeasure, 5);
     vTaskDelay(M2T(500));
-    uart1Send(cmdSetFrequency, 6);
+    uart2Send(cmdSetFrequency, 6);
     vTaskDelay(M2T(500));
-    uart1Send(cmdStartMeasure, 5);
+    uart2Send(cmdStartMeasure, 5);
 
     while (1)
     {
-        uart1Read(response, 2);
+        // DEBUG_PRINT("TOF Running.\n");
+        uart2Read(response, 2);
         if (response[0] == 0xAA && response[1] == 0x55)
         {
 #ifdef DEBUGING_MODE        
             error_flag = 0;
 #endif            
-            uart1Read(response + 2, PACKET_SIZE_2);
+            uart2Read(response + 2, PACKET_SIZE_2);
             if (response[PACKET_SIZE_1] != calculateChecksum(response, PACKET_SIZE))
             {
 #ifdef DEBUGING_MODE
@@ -162,7 +163,7 @@ static const DeckDriver tof_deck = {
     .pid = 0,
     .name = "tofsensor",
     .usedGpio = 0,
-    .usedPeriph = DECK_USING_UART1,
+    .usedPeriph = DECK_USING_UART2,
     .init = tofInit,
     .test = tofTest,
 };

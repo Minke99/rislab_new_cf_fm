@@ -13,6 +13,9 @@
         "stdbool.h": "c",
         "math.h": "c",
         "crtp_localization_service.h": "c",
-        "sensfusion6.h": "c"
+        "sensfusion6.h": "c",
+        "system.h": "c",
+        "queue.h": "c",
+        "uart1.h": "c"
     }
 }
